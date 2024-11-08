@@ -11,6 +11,8 @@ import AboutScreen from '../screens/AboutScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import PlaylistScreen from '../screens/PlaylistScreen';
 import LibraryScreen from '../screens/LibraryScreen';
+import StoryDetail from '../screens/StoryDetail';
+import StoryReader from '../screens/StoryReader';
 
 const Stack = createStackNavigator();
 
@@ -40,7 +42,9 @@ const AppNavigator = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Playlist" component={PlaylistScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Library" component={LibraryScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Library" component={LibraryScreen} />
+        <Stack.Screen name="StoryDetail" component={StoryDetail} />
+        <Stack.Screen name="StoryReader" component={StoryReader} />
       <Stack.Screen name="Help" component={HelpScreen} options={{ headerShown: false }} />
       <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
     </Stack.Navigator>

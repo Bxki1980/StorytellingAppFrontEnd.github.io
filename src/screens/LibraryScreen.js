@@ -1,21 +1,17 @@
-// src/screens/LibraryScreen.js
+// File: src/screens/LibraryScreen.js
+
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity } from "react-native";
 import ApiService from "../services/ApiService";
+import StoryCard from "../components/StoryCard";
+import Icon from "react-native-vector-icons/Ionicons";
 
 const LibraryScreen = ({ navigation }) => {
   const [stories, setStories] = useState([]);
   const [filteredStories, setFilteredStories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOption, setSortOption] = useState("date"); // Default sort by date
+  const [sortOption, setSortOption] = useState("date");
+  const [isAscending, setIsAscending] = useState(true); // To toggle sorting order
 
   useEffect(() => {
     fetchStories();
@@ -23,7 +19,7 @@ const LibraryScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterAndSortStories();
-  }, [searchQuery, sortOption, stories]);
+  }, [searchQuery, sortOption, isAscending, stories]);
 
   const fetchStories = async () => {
     try {
@@ -44,109 +40,63 @@ const LibraryScreen = ({ navigation }) => {
       );
     }
 
-    // Sort based on selected option
-    switch (sortOption) {
-      case "date":
-        filtered = filtered.sort(
-          (a, b) => new Date(b.datePublished) - new Date(a.datePublished)
-        );
-        break;
-      case "price":
-        filtered = filtered.sort((a, b) => a.price - b.price);
-        break;
-      case "rating":
-        filtered = filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        break;
-    }
+    // Sort based on selected option and order
+    filtered.sort((a, b) => {
+      const compareValue = sortOption === "date" 
+        ? new Date(a.datePublished) - new Date(b.datePublished)
+        : a.rating - b.rating;
+      return isAscending ? compareValue : -compareValue;
+    });
 
     setFilteredStories(filtered);
   };
 
+  const toggleSortOption = (option) => {
+    if (sortOption === option) {
+      setIsAscending(!isAscending); // Toggle the order if the same option is selected again
+    } else {
+      setSortOption(option);
+      setIsAscending(true); // Default to ascending when changing sort option
+    }
+  };
+
   const renderStoryItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.storyCard}
-      onPress={() => {
-        // Navigate to story details
-        navigation.navigate("StoryDetail", { storyId: item.id });
-      }}
-    >
-      <View style={styles.storyInfo}>
-        <Text style={styles.storyTitle}>{item.title}</Text>
-        <Text style={styles.storyAuthor}>by {item.author}</Text>
-        <Text style={styles.storyPrice}>${item.price.toFixed(2)}</Text>
-      </View>
-      <View style={styles.storyRating}>
-        <Icon name="star" size={16} color="#FFD700" />
-        <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-      </View>
-    </TouchableOpacity>
+    <StoryCard
+      story={item}
+      onPress={() => navigation.navigate("StoryDetail", { storyId: item.id })}
+    />
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <Text style={styles.title}>Your Library</Text>
+      <Text style={styles.title}>Library</Text>
 
-      {/* Search Box */}
+      {/* Search Bar */}
       <TextInput
         style={styles.searchInput}
-        placeholder="Search books..."
+        placeholder="Search stories..."
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
 
-      {/* Sorting Options */}
-      <View style={styles.sortOptions}>
-        <Text style={styles.sortText}>Sort by:</Text>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOption === "date" && styles.activeSortButton,
-          ]}
-          onPress={() => setSortOption("date")}
-        >
-          <Text
-            style={[
-              styles.sortButtonText,
-              sortOption === "date" && styles.activeSortButtonText,
-            ]}
-          >
-            Date
-          </Text>
+      {/* Sort Options */}
+      <View style={styles.sortContainer}>
+        <TouchableOpacity style={styles.sortButton} onPress={() => toggleSortOption("date")}>
+          <Text style={styles.sortText}>Date</Text>
+          <Icon
+            name={isAscending && sortOption === "date" ? "arrow-up" : "arrow-down"}
+            size={16}
+            color="#333"
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOption === "price" && styles.activeSortButton,
-          ]}
-          onPress={() => setSortOption("price")}
-        >
-          <Text
-            style={[
-              styles.sortButtonText,
-              sortOption === "price" && styles.activeSortButtonText,
-            ]}
-          >
-            Price
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOption === "rating" && styles.activeSortButton,
-          ]}
-          onPress={() => setSortOption("rating")}
-        >
-          <Text
-            style={[
-              styles.sortButtonText,
-              sortOption === "rating" && styles.activeSortButtonText,
-            ]}
-          >
-            Highest Rated
-          </Text>
+
+        <TouchableOpacity style={styles.sortButton} onPress={() => toggleSortOption("rating")}>
+          <Text style={styles.sortText}>Rating</Text>
+          <Icon
+            name={isAscending && sortOption === "rating" ? "arrow-up" : "arrow-down"}
+            size={16}
+            color="#333"
+          />
         </TouchableOpacity>
       </View>
 
@@ -155,6 +105,8 @@ const LibraryScreen = ({ navigation }) => {
         data={filteredStories}
         renderItem={renderStoryItem}
         keyExtractor={(item) => item.id.toString()}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.storiesList}
       />
     </View>
@@ -166,85 +118,50 @@ export default LibraryScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-    padding: 20,
+    backgroundColor: "#FAF8EF",
+    paddingTop: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#333",
+    alignSelf: "center",
     marginBottom: 15,
   },
   searchInput: {
-    borderWidth: 1,
+    height: 40,
     borderColor: "#CCC",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: "#FFF",
   },
-  sortOptions: {
+  sortContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 15,
-  },
-  sortText: {
-    marginRight: 10,
-    fontSize: 16,
-    color: "#333",
   },
   sortButton: {
-    paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginHorizontal: 5,
     borderRadius: 5,
-    backgroundColor: "#F0F0F0",
-    marginRight: 10,
+    backgroundColor: "#E0E0E0",
   },
-  sortButtonText: {
-    fontSize: 14,
+  sortText: {
+    fontSize: 16,
+    marginRight: 5,
     color: "#333",
-  },
-  activeSortButton: {
-    backgroundColor: "#0066CC",
-  },
-  activeSortButtonText: {
-    color: "#FFF",
   },
   storiesList: {
+    paddingHorizontal: 10,
     paddingBottom: 20,
   },
-  storyCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9F9F9",
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 10,
-  },
-  storyInfo: {
-    flex: 1,
-  },
-  storyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  storyAuthor: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 5,
-  },
-  storyPrice: {
-    fontSize: 16,
-    color: "#0066CC",
-    marginTop: 5,
-  },
-  storyRating: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  ratingText: {
-    marginLeft: 5,
-    fontSize: 16,
-    color: "#333",
+  columnWrapper: {
+    justifyContent: "space-between",
   },
 });
